@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1720" />
+  <title>Beer Game — Phase 2 Pass-and-Play</title>
+  <style>
+    :root {
+      --bg: #091017;
+      --panel: #111d28;
+      --panel-2: #172735;
+      --line: #2c4152;
+      --text: #f4f7fa;
+      --muted: #9fb1c1;
+      --accent: #f0b85f;
+      --blue: #78d4ff;
+      --green: #7bdda0;
+      --red: #ff9292;
+      --purple: #d1a5ff;
+      --shadow: 0 18px 42px rgba(0,0,0,.30);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 0 -10%, rgba(120,212,255,.13), transparent 28rem),
+        radial-gradient(circle at 100% 0, rgba(240,184,95,.11), transparent 29rem),
+        var(--bg);
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; touch-action: manipulation; }
+
+    .app {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+      padding: 16px 14px 72px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, var(--accent), #d68c2b);
+      color: #271708;
+      font-weight: 950;
+      box-shadow: var(--shadow);
+      flex: 0 0 auto;
+    }
+
+    .brand-title { min-width: 0; }
+    .brand-title strong {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-title span {
+      display: block;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    .phase-pill {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: .72rem;
+      white-space: nowrap;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    .card {
+      background: linear-gradient(160deg, rgba(18,31,42,.97), rgba(13,24,33,.97));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-pad { padding: 20px; }
+    .hero { padding: 25px 20px; }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: .75rem;
+      font-weight: 850;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 { margin-top: 0; }
+    h1 {
+      margin-bottom: 10px;
+      font-size: clamp(2rem, 7vw, 3.5rem);
+      line-height: 1;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+      font-size: clamp(1.35rem, 5vw, 2rem);
+    }
+
+    h3 {
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
+    p { line-height: 1.55; }
+    .muted { color: var(--muted); }
+
+    .setup-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+      background: #0a151e;
+      color: var(--text);
+      padding: 0 13px;
+      outline: none;
+    }
+
+    .input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(120,212,255,.10);
+    }
+
+    .players-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .player-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 12px;
+      background: rgba(7,14,20,.35);
+    }
+
+    .role-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .82rem;
+      font-weight: 850;
+    }
+
+    .role-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      min-height: 50px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 10px 14px;
+      font-weight: 800;
+    }
+
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { background: var(--accent); color: #261707; border-color: transparent; }
+    .btn.blue { background: var(--blue); color: #07151c; border-color: transparent; }
+    .btn.ghost { background: transparent; }
+    .btn.danger { color: #ffd8d8; border-color: rgba(255,146,146,.45); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .resume-box {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid rgba(123,221,160,.35);
+      background: rgba(123,221,160,.08);
+      border-radius: 14px;
+    }
+
+    .resume-box.show { display: block; }
+
+    .handoff-wrap,
+    .round-wrap {
+      min-height: calc(100vh - 110px);
+      display: grid;
+      place-items: center;
+    }
+
+    .handoff-card,
+    .round-card {
+      width: min(620px, 100%);
+      text-align: center;
+      padding: 28px 20px;
+    }
+
+    .privacy-icon {
+      width: 90px;
+      height: 90px;
+      margin: 2px auto 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 28px;
+      background: rgba(120,212,255,.10);
+      border: 1px solid rgba(120,212,255,.28);
+      font-size: 2.6rem;
+    }
+
+    .role-banner {
+      margin: 16px auto;
+      padding: 14px;
+      width: min(100%, 420px);
+      border-radius: 14px;
+      background: rgba(7,14,20,.4);
+      border: 1px solid var(--line);
+    }
+
+    .role-banner strong {
+      display: block;
+      font-size: 1.2rem;
+    }
+
+    .role-banner span {
+      color: var(--muted);
+      font-size: .84rem;
+    }
+
+    .private-header {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .week-role {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .week-label {
+      color: var(--muted);
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-weight: 800;
+    }
+
+    .role-chip {
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 850;
+      color: #06131a;
+    }
+
+    .private-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 13px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(5,12,17,.42);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 5px;
+      font-size: clamp(1.12rem, 5vw, 1.55rem);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .decision-panel {
+      margin-top: 14px;
+      padding: 17px;
+      border-top: 1px solid var(--line);
+      background: rgba(5,12,17,.30);
+    }
+
+    .decision-copy {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .decision-copy p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    .order-control {
+      display: grid;
+      grid-template-columns: 52px 1fr 52px;
+      gap: 9px;
+    }
+
+    .step-btn {
+      min-height: 54px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 1.35rem;
+      font-weight: 900;
+    }
+
+    .order-input {
+      width: 100%;
+      min-height: 54px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #08131b;
+      color: var(--text);
+      text-align: center;
+      font-size: 1.35rem;
+      font-weight: 900;
+      outline: none;
+    }
+
+    .order-input:focus { border-color: var(--blue); }
+
+    .history-wrap {
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .history-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .history-head span {
+      color: var(--muted);
+      font-size: .74rem;
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 620px;
+      font-size: .78rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: right;
+      border-bottom: 1px solid rgba(44,65,82,.58);
+      white-space: nowrap;
+    }
+
+    th:first-child, td:first-child { text-align: left; }
+
+    th {
+      color: var(--muted);
+      font-size: .68rem;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .round-progress {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin: 18px 0;
+    }
+
+    .progress-role {
+      padding: 9px 5px;
+      border-radius: 11px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .67rem;
+      font-weight: 800;
+    }
+
+    .progress-role.done {
+      color: var(--green);
+      border-color: rgba(123,221,160,.4);
+      background: rgba(123,221,160,.08);
+    }
+
+    .shared-warning {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 13px;
+      border: 1px solid rgba(240,184,95,.35);
+      background: rgba(240,184,95,.08);
+      color: #f5d59e;
+      font-size: .8rem;
+      line-height: 1.45;
+    }
+
+    .debrief-hero { padding: 22px 18px; }
+
+    .debrief-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .chart-grid {
+      display: grid;
+      gap: 13px;
+      margin-top: 14px;
+    }
+
+    .chart-card {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(5,12,17,.36);
+    }
+
+    .chart-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+
+    .chart-title strong { font-size: .88rem; }
+    .chart-title span { color: var(--muted); font-size: .7rem; }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 225px;
+      border-radius: 11px;
+      background: rgba(4,10,14,.37);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 11px;
+      margin-top: 8px;
+      font-size: .7rem;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .swatch {
+      width: 13px;
+      height: 3px;
+      border-radius: 999px;
+    }
+
+    .reflection {
+      margin-top: 14px;
+      padding: 18px;
+    }
+
+    .reflection ol {
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      z-index: 50;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 15px;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-backdrop.open { display: grid; }
+
+    .modal {
+      width: min(620px,100%);
+      max-height: 90vh;
+      overflow: auto;
+      padding: 20px;
+      border-radius: 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .modal p { color: var(--muted); }
+
+    .toast {
+      position: fixed;
+      z-index: 70;
+      left: 50%;
+      bottom: 17px;
+      width: min(92vw, 520px);
+      transform: translate(-50%, 150%);
+      transition: transform .25s ease;
+      background: #f4f7fa;
+      color: #071018;
+      padding: 13px 15px;
+      border-radius: 13px;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+    }
+
+    .toast.show { transform: translate(-50%, 0); }
+
+    .test-output {
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .78rem;
+      line-height: 1.55;
+      color: var(--muted);
+      background: #08131b;
+      padding: 13px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+    }
+
+    .footer {
+      margin-top: 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    @media (min-width: 680px) {
+      .app { padding: 22px 20px 84px; }
+      .setup-grid { grid-template-columns: 1fr 1fr; }
+      .players-grid { grid-template-columns: 1fr 1fr; }
+      .btn-row { grid-template-columns: 1fr 1fr; }
+      .private-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .debrief-stats { grid-template-columns: repeat(4,minmax(0,1fr)); }
+      .chart-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .player-row { grid-template-columns: 140px 1fr; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">BG</div>
+        <div class="brand-title">
+          <strong id="topTeamName">Beer Game</strong>
+          <span>Local pass-and-play prototype</span>
+        </div>
+      </div>
+      <div class="phase-pill">Phase 2</div>
+    </header>
+
+    <section id="setupScreen" class="screen active">
+      <div class="card hero">
+        <div class="eyebrow">Four players · One device</div>
+        <h1>The Beer Game</h1>
+        <p class="muted">
+          Each role takes a private turn on the same phone, tablet or computer. Decisions remain hidden until
+          all four players have submitted and the week is resolved simultaneously.
+        </p>
+
+        <div id="resumeBox" class="resume-box">
+          <strong>Saved game found</strong>
+          <p class="muted" id="resumeText" style="margin:5px 0 10px;"></p>
+          <button id="resumeBtn" class="btn blue" style="width:100%;">Resume saved game</button>
+        </div>
+      </div>
+
+      <div class="card card-pad" style="margin-top:14px;">
+        <h2>Team setup</h2>
+        <p class="muted" style="margin-top:0;">Assign one person to each role. The role order remains fixed during the game.</p>
+
+        <div class="setup-grid">
+          <div class="field">
+            <label for="teamNameInput">Team name</label>
+            <input id="teamNameInput" class="input" maxlength="40" value="Supply Chain Team" />
+          </div>
+
+          <div class="field">
+            <label for="scenarioInput">Demand scenario</label>
+            <select id="scenarioInput" class="input">
+              <option value="step">Hidden step: 4 → 8</option>
+              <option value="pulse">Hidden pulse: 4 → 10 → 4</option>
+              <option value="constant">Training equilibrium: constant 4</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="weeksInput">Game length</label>
+            <select id="weeksInput" class="input">
+              <option value="24">24 weeks</option>
+              <option value="36" selected>36 weeks</option>
+              <option value="50">50 weeks</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="communicationInput">Communication rule</label>
+            <select id="communicationInput" class="input">
+              <option value="silent">No strategy communication</option>
+              <option value="open">Open team communication</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="players-grid" id="playersGrid"></div>
+
+        <div class="shared-warning">
+          During a private turn, only the named player should view the screen. Other players should look away.
+        </div>
+
+        <div class="btn-row">
+          <button id="startBtn" class="btn primary">Start new game</button>
+          <button id="howBtn" class="btn">How the game works</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="handoffScreen" class="screen">
+      <div class="handoff-wrap">
+        <div class="card handoff-card">
+          <div class="privacy-icon">🔒</div>
+          <div class="eyebrow" id="handoffWeek">Week 1</div>
+          <h2>Pass the device</h2>
+          <p class="muted">Only the next player should look at the screen.</p>
+
+          <div class="role-banner">
+            <strong id="handoffPlayer">Player</strong>
+            <span id="handoffRole">Retailer</span>
+          </div>
+
+          <div class="round-progress" id="handoffProgress"></div>
+
+          <button id="readyBtn" class="btn primary" style="width:100%;">I am ready — show my role</button>
+          <button id="quitBtn" class="btn ghost danger" style="width:100%;margin-top:9px;">End game and return to setup</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="roleScreen" class="screen">
+      <div class="private-header">
+        <div class="week-role">
+          <div>
+            <div class="week-label" id="privateWeek">Week 1 of 36</div>
+            <h2 id="privatePlayer" style="margin:4px 0 0;">Player</h2>
+          </div>
+          <div id="privateRoleChip" class="role-chip">Retailer</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-pad">
+          <h3>Your local situation</h3>
+          <p class="muted" style="margin-top:0;font-size:.82rem;">
+            These are the only operational values visible to your role this week.
+          </p>
+
+          <div class="private-grid">
+            <div class="metric"><span>Inventory</span><strong id="mInventory">12</strong></div>
+            <div class="metric"><span>Backlog</span><strong id="mBacklog">0</strong></div>
+            <div class="metric"><span>Order received</span><strong id="mIncomingOrder">4</strong></div>
+            <div class="metric"><span id="shipmentMetricLabel">Shipment received</span><strong id="mIncomingShipment">4</strong></div>
+            <div class="metric"><span>Known supply line</span><strong id="mSupplyLine">8</strong></div>
+            <div class="metric"><span>Cumulative local cost</span><strong id="mCost">0.0</strong></div>
+          </div>
+        </div>
+
+        <div class="decision-panel">
+          <div class="decision-copy">
+            <div>
+              <h3 id="decisionTitle">Place your upstream order</h3>
+              <p id="decisionHelp">This order takes two weeks to reach your supplier.</p>
+            </div>
+            <span class="week-label">cases/week</span>
+          </div>
+
+          <div class="order-control">
+            <button id="minusBtn" class="step-btn" aria-label="Decrease order">−</button>
+            <input id="orderInput" class="order-input" type="number" inputmode="numeric" min="0" max="100" value="4" />
+            <button id="plusBtn" class="step-btn" aria-label="Increase order">+</button>
+          </div>
+
+          <button id="submitBtn" class="btn primary" style="width:100%;margin-top:11px;">Submit private decision</button>
+        </div>
+      </div>
+
+      <div class="card history-wrap">
+        <div class="history-head">
+          <strong>Your recent history</strong>
+          <span>Only this role</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Order in</th>
+                <th>Shipment in</th>
+                <th>Your order</th>
+                <th>Shipment out</th>
+                <th>Inventory</th>
+                <th>Backlog</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer">Private role screen · Do not pass the device until the decision has been submitted.</div>
+    </section>
+
+    <section id="roundScreen" class="screen">
+      <div class="round-wrap">
+        <div class="card round-card">
+          <div class="privacy-icon">✓</div>
+          <div class="eyebrow" id="resolvedWeekLabel">Week resolved</div>
+          <h2 id="roundTitle">All decisions submitted</h2>
+          <p class="muted" id="roundText">
+            Orders and shipments have moved one step through their delays.
+          </p>
+          <button id="nextWeekBtn" class="btn primary" style="width:100%;">Begin next week</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="debriefScreen" class="screen">
+      <div class="card debrief-hero">
+        <div class="eyebrow">Shared team debrief</div>
+        <h1 id="debriefTeam">Team results</h1>
+        <p class="muted" id="debriefSummary"></p>
+
+        <div class="debrief-stats">
+          <div class="metric"><span>Total team cost</span><strong id="dCost">0</strong></div>
+          <div class="metric"><span>Factory bullwhip ratio</span><strong id="dBullwhip">0</strong></div>
+          <div class="metric"><span>Maximum inventory</span><strong id="dMaxInventory">0</strong></div>
+          <div class="metric"><span>Maximum backlog</span><strong id="dMaxBacklog">0</strong></div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title"><strong>Orders and customer demand</strong><span>cases/week</span></div>
+          <canvas id="ordersChart"></canvas>
+          <div class="legend" id="ordersLegend"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title"><strong>Inventory</strong><span>cases</span></div>
+          <canvas id="inventoryChart"></canvas>
+          <div class="legend" id="inventoryLegend"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title"><strong>Backlog</strong><span>cases</span></div>
+          <canvas id="backlogChart"></canvas>
+          <div class="legend" id="backlogLegend"></div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title"><strong>Cumulative cost</strong><span>cost units</span></div>
+          <canvas id="costChart"></canvas>
+          <div class="legend" id="costLegend"></div>
+        </div>
+      </div>
+
+      <div class="card reflection">
+        <h2>Debrief questions</h2>
+        <ol>
+          <li>Where did the first sustained overreaction occur, and what information did that player have at the time?</li>
+          <li>How much material was already in the supply line when players continued increasing orders?</li>
+          <li>Which balancing action produced an unintended reinforcing pattern through the delays?</li>
+          <li>How would shared demand information or an explicit supply-line target change the decisions?</li>
+        </ol>
+
+        <div class="btn-row">
+          <button id="exportBtn" class="btn blue">Export full CSV</button>
+          <button id="newGameBtn" class="btn primary">Start another game</button>
+        </div>
+        <button id="checksBtn" class="btn ghost" style="width:100%;margin-top:9px;">Run model verification checks</button>
+        <pre id="testOutput" class="test-output" style="display:none;margin-top:10px;"></pre>
+      </div>
+    </section>
+
+    <div class="footer">Standalone HTML · Autosaves locally after every submitted decision and resolved week.</div>
+  </main>
+
+  <div id="howModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>How the local game works</h2>
+      <p>
+        Each week, the retailer, wholesaler, distributor and factory take one private turn. Every player sees
+        only their local inventory, backlog, incoming order, incoming shipment, known supply line and local history.
+      </p>
+      <p>
+        Orders travel upstream with a two-week information delay. Shipments and factory production travel
+        downstream with a two-week physical delay. All decisions are applied simultaneously after the factory submits.
+      </p>
+      <p>
+        The game starts in equilibrium: demand, orders, shipments and production are all four cases per week;
+        inventory is 12 cases at every echelon; backlog is zero. The demand scenario remains hidden during play.
+      </p>
+      <p>
+        Inventory costs 0.5 cost units per case per week, while backlog costs 1.0 cost unit per case per week.
+      </p>
+      <button class="btn primary" data-close="howModal" style="width:100%;">Close</button>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Submit this decision?</h2>
+      <p id="confirmText"></p>
+      <div class="btn-row">
+        <button id="cancelSubmitBtn" class="btn">Go back</button>
+        <button id="confirmSubmitBtn" class="btn primary">Confirm and hide screen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "beerGamePhase2SaveV1";
+
+    const ROLE_DEFS = [
+      { id: "retailer", name: "Retailer", colour: "#78d4ff", subtitle: "Ships to the final customer" },
+      { id: "wholesaler", name: "Wholesaler", colour: "#7bdda0", subtitle: "Supplies the retailer" },
+      { id: "distributor", name: "Distributor", colour: "#f0b85f", subtitle: "Supplies the wholesaler" },
+      { id: "factory", name: "Factory", colour: "#d1a5ff", subtitle: "Produces and supplies the distributor" }
+    ];
+
+    const BASE_PARAMS = Object.freeze({
+      baselineDemand: 4,
+      shockWeek: 5,
+      stepDemand: 8,
+      pulseDemand: 10,
+      pulseEndWeek: 10,
+      orderDelay: 2,
+      shipmentDelay: 2,
+      initialInventory: 12,
+      holdingCost: 0.5,
+      backlogCost: 1.0,
+      maxOrder: 100
+    });
+
+    let session = null;
+    let draftOrder = 4;
+
+    const $ = id => document.getElementById(id);
+
+    const els = {
+      topTeamName: $("topTeamName"),
+      setupScreen: $("setupScreen"),
+      handoffScreen: $("handoffScreen"),
+      roleScreen: $("roleScreen"),
+      roundScreen: $("roundScreen"),
+      debriefScreen: $("debriefScreen"),
+      resumeBox: $("resumeBox"),
+      resumeText: $("resumeText"),
+      resumeBtn: $("resumeBtn"),
+      teamNameInput: $("teamNameInput"),
+      scenarioInput: $("scenarioInput"),
+      weeksInput: $("weeksInput"),
+      communicationInput: $("communicationInput"),
+      playersGrid: $("playersGrid"),
+      startBtn: $("startBtn"),
+      howBtn: $("howBtn"),
+      handoffWeek: $("handoffWeek"),
+      handoffPlayer: $("handoffPlayer"),
+      handoffRole: $("handoffRole"),
+      handoffProgress: $("handoffProgress"),
+      readyBtn: $("readyBtn"),
+      quitBtn: $("quitBtn"),
+      privateWeek: $("privateWeek"),
+      privatePlayer: $("privatePlayer"),
+      privateRoleChip: $("privateRoleChip"),
+      mInventory: $("mInventory"),
+      mBacklog: $("mBacklog"),
+      mIncomingOrder: $("mIncomingOrder"),
+      mIncomingShipment: $("mIncomingShipment"),
+      mSupplyLine: $("mSupplyLine"),
+      mCost: $("mCost"),
+      shipmentMetricLabel: $("shipmentMetricLabel"),
+      decisionTitle: $("decisionTitle"),
+      decisionHelp: $("decisionHelp"),
+      minusBtn: $("minusBtn"),
+      plusBtn: $("plusBtn"),
+      orderInput: $("orderInput"),
+      submitBtn: $("submitBtn"),
+      historyBody: $("historyBody"),
+      resolvedWeekLabel: $("resolvedWeekLabel"),
+      roundTitle: $("roundTitle"),
+      roundText: $("roundText"),
+      nextWeekBtn: $("nextWeekBtn"),
+      debriefTeam: $("debriefTeam"),
+      debriefSummary: $("debriefSummary"),
+      dCost: $("dCost"),
+      dBullwhip: $("dBullwhip"),
+      dMaxInventory: $("dMaxInventory"),
+      dMaxBacklog: $("dMaxBacklog"),
+      exportBtn: $("exportBtn"),
+      newGameBtn: $("newGameBtn"),
+      checksBtn: $("checksBtn"),
+      testOutput: $("testOutput"),
+      howModal: $("howModal"),
+      confirmModal: $("confirmModal"),
+      confirmText: $("confirmText"),
+      cancelSubmitBtn: $("cancelSubmitBtn"),
+      confirmSubmitBtn: $("confirmSubmitBtn"),
+      toast: $("toast")
+    };
+
+    function filledQueue(length, value) {
+      return Array.from({ length }, () => value);
+    }
+
+    function demandForWeek(week, scenario, p = BASE_PARAMS) {
+      if (scenario === "constant") return p.baselineDemand;
+      if (scenario === "pulse") {
+        return week >= p.shockWeek && week < p.pulseEndWeek ? p.pulseDemand : p.baselineDemand;
+      }
+      return week >= p.shockWeek ? p.stepDemand : p.baselineDemand;
+    }
+
+    function initialGame(config, p = BASE_PARAMS) {
+      return {
+        week: 1,
+        totalWeeks: config.totalWeeks,
+        scenario: config.scenario,
+        roles: ROLE_DEFS.map((role, index) => {
+          const stepInitialInventories = [24, 20, 16, 8];
+          const initialInventory =
+            config.scenario === "step"
+              ? stepInitialInventories[index]
+              : p.initialInventory;
+
+          return {
+            inventory: initialInventory,
+            backlog: 0,
+            weeklyCost: 0,
+            cumulativeCost: 0
+          };
+        }),
+        orderQueues: {
+          wholesaler: filledQueue(p.orderDelay, p.baselineDemand),
+          distributor: filledQueue(p.orderDelay, p.baselineDemand),
+          factory: filledQueue(p.orderDelay, p.baselineDemand)
+        },
+        shipmentQueues: {
+          retailer: filledQueue(p.shipmentDelay, p.baselineDemand),
+          wholesaler: filledQueue(p.shipmentDelay, p.baselineDemand),
+          distributor: filledQueue(p.shipmentDelay, p.baselineDemand)
+        },
+        productionQueue: filledQueue(p.shipmentDelay, p.baselineDemand),
+        history: [],
+        cumulativeProductionStarted: 0,
+        cumulativeCustomerDeliveries: 0,
+        initialMaterial:
+          (
+            config.scenario === "step"
+              ? [24, 20, 16, 8].reduce((sum, value) => sum + value, 0)
+              : ROLE_DEFS.length * p.initialInventory
+          ) +
+          3 * p.shipmentDelay * p.baselineDemand +
+          p.shipmentDelay * p.baselineDemand,
+        completed: false
+      };
+    }
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function currentIncomingOrders(game, p = BASE_PARAMS) {
+      return [
+        demandForWeek(game.week, game.scenario, p),
+        game.orderQueues.wholesaler[0],
+        game.orderQueues.distributor[0],
+        game.orderQueues.factory[0]
+      ];
+    }
+
+    function currentIncomingShipments(game) {
+      return [
+        game.shipmentQueues.retailer[0],
+        game.shipmentQueues.wholesaler[0],
+        game.shipmentQueues.distributor[0],
+        game.productionQueue[0]
+      ];
+    }
+
+    function knownSupplyLine(game, roleIndex) {
+      if (roleIndex === 0) return game.shipmentQueues.retailer.reduce((a,b) => a+b, 0);
+      if (roleIndex === 1) return game.shipmentQueues.wholesaler.reduce((a,b) => a+b, 0);
+      if (roleIndex === 2) return game.shipmentQueues.distributor.reduce((a,b) => a+b, 0);
+      return game.productionQueue.reduce((a,b) => a+b, 0);
+    }
+
+    function resolveRound(currentGame, decisions, p = BASE_PARAMS) {
+      if (!Array.isArray(decisions) || decisions.length !== 4) {
+        throw new Error("Exactly four decisions are required.");
+      }
+
+      const game = clone(currentGame);
+      const incomingOrders = currentIncomingOrders(game, p);
+      const incomingShipments = currentIncomingShipments(game);
+      const shipmentsSent = [];
+      const rows = [];
+
+      for (let i = 0; i < 4; i++) {
+        const role = game.roles[i];
+        const demandToFill = incomingOrders[i] + role.backlog;
+        const available = role.inventory + incomingShipments[i];
+        const shipmentSent = Math.max(0, Math.min(available, demandToFill));
+        const endingInventory = Math.max(0, available - shipmentSent);
+        const endingBacklog = Math.max(0, demandToFill - shipmentSent);
+        const weeklyCost =
+          p.holdingCost * endingInventory +
+          p.backlogCost * endingBacklog;
+
+        role.inventory = endingInventory;
+        role.backlog = endingBacklog;
+        role.weeklyCost = weeklyCost;
+        role.cumulativeCost += weeklyCost;
+
+        shipmentsSent.push(shipmentSent);
+
+        rows.push({
+          week: game.week,
+          role: ROLE_DEFS[i].id,
+          customerDemand: i === 0 ? incomingOrders[0] : "",
+          incomingOrder: incomingOrders[i],
+          incomingShipment: incomingShipments[i],
+          shipmentSent,
+          orderPlaced: decisions[i],
+          endingInventory,
+          endingBacklog,
+          weeklyCost,
+          cumulativeCost: role.cumulativeCost
+        });
+      }
+
+      game.orderQueues.wholesaler.shift();
+      game.orderQueues.wholesaler.push(decisions[0]);
+      game.orderQueues.distributor.shift();
+      game.orderQueues.distributor.push(decisions[1]);
+      game.orderQueues.factory.shift();
+      game.orderQueues.factory.push(decisions[2]);
+
+      game.shipmentQueues.retailer.shift();
+      game.shipmentQueues.retailer.push(shipmentsSent[1]);
+      game.shipmentQueues.wholesaler.shift();
+      game.shipmentQueues.wholesaler.push(shipmentsSent[2]);
+      game.shipmentQueues.distributor.shift();
+      game.shipmentQueues.distributor.push(shipmentsSent[3]);
+
+      game.productionQueue.shift();
+      game.productionQueue.push(decisions[3]);
+
+      game.cumulativeProductionStarted += decisions[3];
+      game.cumulativeCustomerDeliveries += shipmentsSent[0];
+      game.history.push(...rows);
+
+      game.week += 1;
+      game.completed = game.week > game.totalWeeks;
+      return game;
+    }
+
+    function newSession(config) {
+      return {
+        teamName: config.teamName,
+        players: config.players,
+        communication: config.communication,
+        game: initialGame(config),
+        pendingDecisions: [null, null, null, null],
+        activeRoleIndex: 0,
+        phase: "handoff",
+        lastResolvedWeek: 0
+      };
+    }
+
+    function saveSession() {
+      if (!session) return;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    }
+
+    function loadSavedSession() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function clearSavedSession() {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function safeOrder(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 0;
+      return Math.max(0, Math.min(BASE_PARAMS.maxOrder, Math.round(n)));
+    }
+
+    function formatNumber(value, digits = 0) {
+      return Number(value).toLocaleString("en-GB", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
+      $(id).classList.add("active");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => els.toast.classList.remove("show"), 2200);
+    }
+
+    function openModal(id) {
+      $(id).classList.add("open");
+    }
+
+    function closeModal(id) {
+      $(id).classList.remove("open");
+    }
+
+    function renderPlayerInputs() {
+      els.playersGrid.innerHTML = ROLE_DEFS.map((role, index) => `
+        <div class="player-row">
+          <div class="role-label">
+            <span class="role-dot" style="background:${role.colour}"></span>
+            <span>${role.name}</span>
+          </div>
+          <input
+            class="input"
+            id="playerName${index}"
+            maxlength="30"
+            value="Player ${index + 1}"
+            aria-label="${role.name} player name"
+          />
+        </div>
+      `).join("");
+    }
+
+    function updateSavedGamePrompt() {
+      const saved = loadSavedSession();
+      if (!saved || !saved.game || saved.game.completed) {
+        els.resumeBox.classList.remove("show");
+        return;
+      }
+
+      els.resumeText.textContent =
+        `${saved.teamName || "Saved team"} · week ${saved.game.week} of ${saved.game.totalWeeks}`;
+      els.resumeBox.classList.add("show");
+    }
+
+    function setupFromForm() {
+      return {
+        teamName: els.teamNameInput.value.trim() || "Supply Chain Team",
+        scenario: els.scenarioInput.value,
+        totalWeeks: Number(els.weeksInput.value),
+        communication: els.communicationInput.value,
+        players: ROLE_DEFS.map((role, i) => {
+          const input = $(`playerName${i}`);
+          return input.value.trim() || role.name;
+        })
+      };
+    }
+
+    function startNewGame() {
+      const config = setupFromForm();
+      session = newSession(config);
+      els.topTeamName.textContent = session.teamName;
+      saveSession();
+      renderHandoff();
+    }
+
+    function renderHandoff() {
+      session.phase = "handoff";
+      saveSession();
+
+      const i = session.activeRoleIndex;
+      const role = ROLE_DEFS[i];
+
+      els.topTeamName.textContent = session.teamName;
+      els.handoffWeek.textContent = `Week ${session.game.week} of ${session.game.totalWeeks}`;
+      els.handoffPlayer.textContent = session.players[i];
+      els.handoffRole.textContent = `${role.name} · ${role.subtitle}`;
+
+      els.handoffProgress.innerHTML = ROLE_DEFS.map((r, idx) => `
+        <div class="progress-role ${session.pendingDecisions[idx] !== null ? "done" : ""}">
+          ${session.pendingDecisions[idx] !== null ? "✓ " : ""}${r.name}
+        </div>
+      `).join("");
+
+      showScreen("handoffScreen");
+    }
+
+    function currentRoleLocalState() {
+      const i = session.activeRoleIndex;
+      return {
+        role: ROLE_DEFS[i],
+        player: session.players[i],
+        stock: session.game.roles[i],
+        incomingOrder: currentIncomingOrders(session.game)[i],
+        incomingShipment: currentIncomingShipments(session.game)[i],
+        supplyLine: knownSupplyLine(session.game, i)
+      };
+    }
+
+    function roleHistory(roleId) {
+      return session.game.history
+        .filter(row => row.role === roleId)
+        .slice(-6)
+        .reverse();
+    }
+
+    function renderPrivateRole() {
+      session.phase = "role";
+      saveSession();
+
+      const i = session.activeRoleIndex;
+      const local = currentRoleLocalState();
+
+      els.privateWeek.textContent = `Week ${session.game.week} of ${session.game.totalWeeks}`;
+      els.privatePlayer.textContent = local.player;
+      els.privateRoleChip.textContent = local.role.name;
+      els.privateRoleChip.style.background = local.role.colour;
+
+      els.mInventory.textContent = formatNumber(local.stock.inventory);
+      els.mBacklog.textContent = formatNumber(local.stock.backlog);
+      els.mIncomingOrder.textContent = formatNumber(local.incomingOrder);
+      els.mIncomingShipment.textContent = formatNumber(local.incomingShipment);
+      els.mSupplyLine.textContent = formatNumber(local.supplyLine);
+      els.mCost.textContent = formatNumber(local.stock.cumulativeCost, 1);
+
+      els.shipmentMetricLabel.textContent =
+        i === 3 ? "Production completed" : "Shipment received";
+
+      els.decisionTitle.textContent =
+        i === 3 ? "Choose this week's production start" : "Place your upstream order";
+
+      els.decisionHelp.textContent =
+        i === 3
+          ? "Production takes two weeks to become available as factory inventory."
+          : "This order takes two weeks to reach your upstream supplier.";
+
+      const previous = roleHistory(local.role.id)[0];
+      draftOrder = previous ? previous.orderPlaced : BASE_PARAMS.baselineDemand;
+      els.orderInput.value = draftOrder;
+
+      const history = roleHistory(local.role.id);
+      els.historyBody.innerHTML = history.length
+        ? history.map(row => `
+          <tr>
+            <td>${row.week}</td>
+            <td>${formatNumber(row.incomingOrder)}</td>
+            <td>${formatNumber(row.incomingShipment)}</td>
+            <td>${formatNumber(row.orderPlaced)}</td>
+            <td>${formatNumber(row.shipmentSent)}</td>
+            <td>${formatNumber(row.endingInventory)}</td>
+            <td>${formatNumber(row.endingBacklog)}</td>
+            <td>${formatNumber(row.weeklyCost,1)}</td>
+          </tr>
+        `).join("")
+        : `<tr><td colspan="8" style="text-align:center;color:var(--muted);">No completed weeks yet.</td></tr>`;
+
+      showScreen("roleScreen");
+    }
+
+    function requestDecisionSubmission() {
+      draftOrder = safeOrder(els.orderInput.value);
+      els.orderInput.value = draftOrder;
+
+      const role = ROLE_DEFS[session.activeRoleIndex];
+      const action = role.id === "factory" ? "start production of" : "order";
+      els.confirmText.textContent =
+        `${session.players[session.activeRoleIndex]} will ${action} ${formatNumber(draftOrder)} cases this week.`;
+      openModal("confirmModal");
+    }
+
+    function confirmDecisionSubmission() {
+      closeModal("confirmModal");
+
+      const i = session.activeRoleIndex;
+      session.pendingDecisions[i] = draftOrder;
+      saveSession();
+
+      if (i < ROLE_DEFS.length - 1) {
+        session.activeRoleIndex += 1;
+        renderHandoff();
+        return;
+      }
+
+      const resolvedWeek = session.game.week;
+      session.game = resolveRound(session.game, session.pendingDecisions);
+      session.lastResolvedWeek = resolvedWeek;
+      session.pendingDecisions = [null, null, null, null];
+      session.activeRoleIndex = 0;
+      session.phase = session.game.completed ? "debrief" : "round";
+      saveSession();
+
+      if (session.game.completed) renderDebrief();
+      else renderRoundResolved();
+    }
+
+    function renderRoundResolved() {
+      els.resolvedWeekLabel.textContent = `Week ${session.lastResolvedWeek} resolved`;
+      els.roundTitle.textContent = "All four decisions were applied simultaneously";
+      els.roundText.textContent =
+        "Orders moved one week upstream, shipments moved one week downstream, and local inventory and backlog stocks were updated.";
+      els.nextWeekBtn.textContent = `Begin week ${session.game.week}`;
+      showScreen("roundScreen");
+    }
+
+    function teamCost(game = session.game) {
+      return game.roles.reduce((sum, r) => sum + r.cumulativeCost, 0);
+    }
+
+    function variance(values) {
+      if (!values.length) return 0;
+      const mean = values.reduce((a,b) => a+b,0) / values.length;
+      return values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+    }
+
+    function seriesByRole(field) {
+      return ROLE_DEFS.map(role =>
+        session.game.history
+          .filter(row => row.role === role.id)
+          .map(row => Number(row[field]))
+      );
+    }
+
+    function customerDemandSeries() {
+      return session.game.history
+        .filter(row => row.role === "retailer")
+        .map(row => Number(row.customerDemand));
+    }
+
+    function renderDebrief() {
+      session.phase = "debrief";
+      saveSession();
+
+      els.topTeamName.textContent = session.teamName;
+      els.debriefTeam.textContent = session.teamName;
+
+      const orders = seriesByRole("orderPlaced");
+      const demand = customerDemandSeries();
+      const demandVariance = variance(demand);
+      const factoryBullwhip = demandVariance > 0 ? variance(orders[3]) / demandVariance : 0;
+      const maxInventory = Math.max(0, ...session.game.history.map(r => r.endingInventory));
+      const maxBacklog = Math.max(0, ...session.game.history.map(r => r.endingBacklog));
+
+      els.dCost.textContent = formatNumber(teamCost(), 1);
+      els.dBullwhip.textContent = formatNumber(factoryBullwhip, 2);
+      els.dMaxInventory.textContent = formatNumber(maxInventory);
+      els.dMaxBacklog.textContent = formatNumber(maxBacklog);
+
+      els.debriefSummary.textContent =
+        factoryBullwhip > 1
+          ? "The factory's order variance exceeded customer-demand variance. Delayed local corrections amplified demand upstream."
+          : "This run contained upstream order amplification. Review which ordering rules accounted for delayed supply already in transit.";
+
+      showScreen("debriefScreen");
+      requestAnimationFrame(renderCharts);
+    }
+
+    function renderLegend(id, includeDemand = false) {
+      const items = [
+        ...(includeDemand ? [{ label: "Customer demand", colour: "#ffffff" }] : []),
+        ...ROLE_DEFS.map(r => ({ label: r.name, colour: r.colour }))
+      ];
+
+      $(id).innerHTML = items.map(item => `
+        <span class="legend-item">
+          <span class="swatch" style="background:${item.colour}"></span>
+          ${item.label}
+        </span>
+      `).join("");
+    }
+
+    function drawLineChart(canvas, series, totalWeeks, minMax = 1) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(320, Math.floor(rect.width * dpr));
+      canvas.height = Math.floor(225 * dpr);
+
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const W = canvas.width / dpr;
+      const H = canvas.height / dpr;
+      const pad = { left: 42, right: 11, top: 13, bottom: 27 };
+      const plotW = W - pad.left - pad.right;
+      const plotH = H - pad.top - pad.bottom;
+
+      ctx.clearRect(0,0,W,H);
+
+      const values = series.flatMap(s => s.data).filter(Number.isFinite);
+      const rawMax = Math.max(minMax, ...values, 1);
+      const yMax = Math.max(1, Math.ceil(rawMax * 1.12));
+
+      ctx.strokeStyle = "rgba(159,177,193,.18)";
+      ctx.fillStyle = "#9fb1c1";
+      ctx.lineWidth = 1;
+      ctx.font = "11px system-ui";
+
+      for (let g = 0; g <= 4; g++) {
+        const y = pad.top + plotH * g / 4;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(W - pad.right, y);
+        ctx.stroke();
+        ctx.fillText(String(Math.round(yMax * (1 - g / 4))), 4, y + 4);
+      }
+
+      const xTicks = [1, 6, 12, 18, 24, 30, 36, 42, 50].filter(x => x <= totalWeeks);
+      xTicks.forEach(value => {
+        const x = pad.left + plotW * ((value - 1) / Math.max(1, totalWeeks - 1));
+        ctx.fillText(String(value), x - 6, H - 7);
+      });
+
+      series.forEach(s => {
+        if (!s.data.length) return;
+        ctx.strokeStyle = s.colour;
+        ctx.lineWidth = s.width || 2;
+        ctx.beginPath();
+
+        s.data.forEach((value, index) => {
+          const x = pad.left + plotW * (index / Math.max(1, totalWeeks - 1));
+          const y = pad.top + plotH * (1 - value / yMax);
+          if (index === 0) ctx.moveTo(x,y);
+          else ctx.lineTo(x,y);
+        });
+
+        ctx.stroke();
+      });
+    }
+
+    function renderCharts() {
+      if (!session) return;
+
+      const orders = seriesByRole("orderPlaced");
+      const inventories = seriesByRole("endingInventory");
+      const backlogs = seriesByRole("endingBacklog");
+      const costs = seriesByRole("cumulativeCost");
+      const totalWeeks = session.game.totalWeeks;
+
+      renderLegend("ordersLegend", true);
+      renderLegend("inventoryLegend");
+      renderLegend("backlogLegend");
+      renderLegend("costLegend");
+
+      drawLineChart(
+        $("ordersChart"),
+        [
+          { data: customerDemandSeries(), colour: "#ffffff", width: 2.5 },
+          ...orders.map((data, i) => ({ data, colour: ROLE_DEFS[i].colour }))
+        ],
+        totalWeeks
+      );
+
+      drawLineChart(
+        $("inventoryChart"),
+        inventories.map((data, i) => ({ data, colour: ROLE_DEFS[i].colour })),
+        totalWeeks,
+        BASE_PARAMS.initialInventory
+      );
+
+      drawLineChart(
+        $("backlogChart"),
+        backlogs.map((data, i) => ({ data, colour: ROLE_DEFS[i].colour })),
+        totalWeeks
+      );
+
+      drawLineChart(
+        $("costChart"),
+        costs.map((data, i) => ({ data, colour: ROLE_DEFS[i].colour })),
+        totalWeeks
+      );
+    }
+
+    function materialInSystem(game) {
+      const inventories = game.roles.reduce((sum, role) => sum + role.inventory, 0);
+      const shipmentPipeline =
+        game.shipmentQueues.retailer.reduce((a,b) => a+b,0) +
+        game.shipmentQueues.wholesaler.reduce((a,b) => a+b,0) +
+        game.shipmentQueues.distributor.reduce((a,b) => a+b,0);
+      const productionPipeline = game.productionQueue.reduce((a,b) => a+b,0);
+      return inventories + shipmentPipeline + productionPipeline;
+    }
+
+    function runChecks() {
+      const messages = [];
+      let total = 0;
+      let passed = 0;
+
+      function check(name, condition, detail = "") {
+        total += 1;
+        if (condition) {
+          passed += 1;
+          messages.push(`PASS  ${name}${detail ? " — " + detail : ""}`);
+        } else {
+          messages.push(`FAIL  ${name}${detail ? " — " + detail : ""}`);
+        }
+      }
+
+      const config = {
+        teamName: "Test",
+        players: ["A","B","C","D"],
+        scenario: "constant",
+        totalWeeks: 24,
+        communication: "silent"
+      };
+
+      let game = initialGame(config);
+      for (let w = 0; w < 20; w++) game = resolveRound(game, [4,4,4,4]);
+
+      check(
+        "Equilibrium inventory remains 12 cases",
+        game.roles.every(role => role.inventory === 12)
+      );
+
+      check(
+        "Equilibrium backlog remains zero",
+        game.roles.every(role => role.backlog === 0)
+      );
+
+      check(
+        "All stocks remain non-negative",
+        game.roles.every(role => role.inventory >= 0 && role.backlog >= 0)
+      );
+
+      const expectedMaterial =
+        game.initialMaterial +
+        game.cumulativeProductionStarted -
+        game.cumulativeCustomerDeliveries;
+
+      check(
+        "Material accounting identity",
+        Math.abs(materialInSystem(game) - expectedMaterial) < 1e-9,
+        `system=${materialInSystem(game)}, expected=${expectedMaterial}`
+      );
+
+      const initial = initialGame(config);
+      const a = resolveRound(initial, [4,4,4,4]);
+      const b = resolveRound(initial, [4,4,4,4]);
+
+      check("Transition is deterministic", JSON.stringify(a) === JSON.stringify(b));
+      check("Transition does not mutate its input", initial.week === 1 && initial.history.length === 0);
+
+      let stress = initialGame({ ...config, scenario: "pulse" });
+      for (let w = 0; w < 20; w++) stress = resolveRound(stress, [0,14,29,3]);
+
+      check(
+        "Stress-run stocks remain finite and non-negative",
+        stress.roles.every(role =>
+          Number.isFinite(role.inventory) &&
+          Number.isFinite(role.backlog) &&
+          role.inventory >= 0 &&
+          role.backlog >= 0
+        )
+      );
+
+      messages.unshift(`${passed}/${total} checks passed`);
+      return messages.join("\n");
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g,'""')}"` : text;
+    }
+
+    function exportCSV() {
+      if (!session || !session.game.history.length) {
+        showToast("No completed weeks to export.");
+        return;
+      }
+
+      const columns = [
+        "teamName","playerName","week","role","customerDemand","incomingOrder",
+        "incomingShipment","shipmentSent","orderPlaced","endingInventory",
+        "endingBacklog","weeklyCost","cumulativeCost"
+      ];
+
+      const rows = session.game.history.map(row => {
+        const roleIndex = ROLE_DEFS.findIndex(role => role.id === row.role);
+        return {
+          teamName: session.teamName,
+          playerName: session.players[roleIndex],
+          ...row
+        };
+      });
+
+      const csv = [
+        columns.join(","),
+        ...rows.map(row => columns.map(col => csvEscape(row[col])).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `beer-game-phase2-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast("CSV exported.");
+    }
+
+    function returnToSetup(clearSave = false) {
+      if (clearSave) clearSavedSession();
+      session = null;
+      els.topTeamName.textContent = "Beer Game";
+      updateSavedGamePrompt();
+      showScreen("setupScreen");
+    }
+
+    function resumeSession() {
+      const saved = loadSavedSession();
+      if (!saved) {
+        showToast("Saved game could not be loaded.");
+        updateSavedGamePrompt();
+        return;
+      }
+
+      session = saved;
+      els.topTeamName.textContent = session.teamName;
+
+      if (session.phase === "role") renderPrivateRole();
+      else if (session.phase === "round") renderRoundResolved();
+      else if (session.phase === "debrief" || session.game.completed) renderDebrief();
+      else renderHandoff();
+    }
+
+    els.startBtn.addEventListener("click", startNewGame);
+    els.howBtn.addEventListener("click", () => openModal("howModal"));
+    els.resumeBtn.addEventListener("click", resumeSession);
+    els.readyBtn.addEventListener("click", renderPrivateRole);
+
+    els.quitBtn.addEventListener("click", () => {
+      if (confirm("End this game and delete its local save?")) returnToSetup(true);
+    });
+
+    els.minusBtn.addEventListener("click", () => {
+      draftOrder = safeOrder(Number(els.orderInput.value) - 1);
+      els.orderInput.value = draftOrder;
+    });
+
+    els.plusBtn.addEventListener("click", () => {
+      draftOrder = safeOrder(Number(els.orderInput.value) + 1);
+      els.orderInput.value = draftOrder;
+    });
+
+    els.orderInput.addEventListener("change", () => {
+      draftOrder = safeOrder(els.orderInput.value);
+      els.orderInput.value = draftOrder;
+    });
+
+    els.submitBtn.addEventListener("click", requestDecisionSubmission);
+    els.cancelSubmitBtn.addEventListener("click", () => closeModal("confirmModal"));
+    els.confirmSubmitBtn.addEventListener("click", confirmDecisionSubmission);
+    els.nextWeekBtn.addEventListener("click", renderHandoff);
+    els.exportBtn.addEventListener("click", exportCSV);
+
+    els.newGameBtn.addEventListener("click", () => {
+      clearSavedSession();
+      returnToSetup(false);
+    });
+
+    els.checksBtn.addEventListener("click", () => {
+      els.testOutput.textContent = runChecks();
+      els.testOutput.style.display = "block";
+    });
+
+    document.querySelectorAll("[data-close]").forEach(button => {
+      button.addEventListener("click", () => closeModal(button.dataset.close));
+    });
+
+    document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
+      backdrop.addEventListener("click", event => {
+        if (event.target === backdrop && backdrop.id !== "confirmModal") {
+          backdrop.classList.remove("open");
+        }
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      if (session && session.phase === "debrief") renderCharts();
+    });
+
+    renderPlayerInputs();
+    updateSavedGamePrompt();
+  </script>
+</body>
+</html>
