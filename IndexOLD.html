@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0d1720" />
-  <title>Beer Game — Phase 2 Custom Initial Inventories</title>
+  <title>Beer Game — Phase 2 Pass-and-Play</title>
   <style>
     :root {
       --bg: #091017;
@@ -175,58 +175,6 @@
       display: grid;
       gap: 10px;
       margin-top: 14px;
-    }
-
-    .inventory-config {
-      margin-top: 16px;
-      padding: 15px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: rgba(7,14,20,.35);
-    }
-
-    .inventory-config-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .inventory-config-head strong { font-size: .95rem; }
-    .inventory-config-head span { color: var(--muted); font-size: .72rem; }
-
-    .inventory-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 9px;
-    }
-
-    .inventory-field {
-      min-width: 0;
-      padding: 10px;
-      border: 1px solid rgba(44,65,82,.72);
-      border-radius: 13px;
-      background: rgba(5,12,17,.38);
-    }
-
-    .inventory-field label {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin-bottom: 7px;
-      color: var(--muted);
-      font-size: .72rem;
-      font-weight: 800;
-    }
-
-    .inventory-field .input {
-      min-height: 44px;
-      text-align: center;
-      font-size: 1.05rem;
-      font-weight: 850;
-      padding: 0 8px;
     }
 
     .player-row {
@@ -665,7 +613,6 @@
       .app { padding: 22px 20px 84px; }
       .setup-grid { grid-template-columns: 1fr 1fr; }
       .players-grid { grid-template-columns: 1fr 1fr; }
-      .inventory-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .btn-row { grid-template-columns: 1fr 1fr; }
       .private-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
       .debrief-stats { grid-template-columns: repeat(4,minmax(0,1fr)); }
@@ -738,14 +685,6 @@
               <option value="open">Open team communication</option>
             </select>
           </div>
-        </div>
-
-        <div class="inventory-config">
-          <div class="inventory-config-head">
-            <strong>Initial inventories</strong>
-            <span>cases at the start of week 1</span>
-          </div>
-          <div class="inventory-grid" id="inventoryGrid"></div>
         </div>
 
         <div class="players-grid" id="playersGrid"></div>
@@ -943,8 +882,8 @@
         downstream with a two-week physical delay. All decisions are applied simultaneously after the factory submits.
       </p>
       <p>
-        Demand, orders, shipments and production begin at four cases per week, with zero backlog. Before starting,
-        the facilitator can set a separate initial inventory for each echelon. The demand scenario remains hidden during play.
+        The game starts in equilibrium: demand, orders, shipments and production are all four cases per week;
+        inventory is 12 cases at every echelon; backlog is zero. The demand scenario remains hidden during play.
       </p>
       <p>
         Inventory costs 0.5 cost units per case per week, while backlog costs 1.0 cost unit per case per week.
@@ -977,12 +916,6 @@
       { id: "distributor", name: "Distributor", colour: "#f0b85f", subtitle: "Supplies the wholesaler" },
       { id: "factory", name: "Factory", colour: "#d1a5ff", subtitle: "Produces and supplies the distributor" }
     ];
-
-    const SCENARIO_INITIAL_INVENTORIES = Object.freeze({
-      step: [24, 20, 16, 8],
-      pulse: [12, 12, 12, 12],
-      constant: [12, 12, 12, 12]
-    });
 
     const BASE_PARAMS = Object.freeze({
       baselineDemand: 4,
@@ -1017,7 +950,6 @@
       scenarioInput: $("scenarioInput"),
       weeksInput: $("weeksInput"),
       communicationInput: $("communicationInput"),
-      inventoryGrid: $("inventoryGrid"),
       playersGrid: $("playersGrid"),
       startBtn: $("startBtn"),
       howBtn: $("howBtn"),
@@ -1083,12 +1015,20 @@
         week: 1,
         totalWeeks: config.totalWeeks,
         scenario: config.scenario,
-        roles: ROLE_DEFS.map((role, index) => ({
-          inventory: config.initialInventories[index],
-          backlog: 0,
-          weeklyCost: 0,
-          cumulativeCost: 0
-        })),
+        roles: ROLE_DEFS.map((role, index) => {
+          const stepInitialInventories = [24, 20, 16, 8];
+          const initialInventory =
+            config.scenario === "step"
+              ? stepInitialInventories[index]
+              : p.initialInventory;
+
+          return {
+            inventory: initialInventory,
+            backlog: 0,
+            weeklyCost: 0,
+            cumulativeCost: 0
+          };
+        }),
         orderQueues: {
           wholesaler: filledQueue(p.orderDelay, p.baselineDemand),
           distributor: filledQueue(p.orderDelay, p.baselineDemand),
@@ -1104,7 +1044,11 @@
         cumulativeProductionStarted: 0,
         cumulativeCustomerDeliveries: 0,
         initialMaterial:
-          config.initialInventories.reduce((sum, value) => sum + value, 0) +
+          (
+            config.scenario === "step"
+              ? [24, 20, 16, 8].reduce((sum, value) => sum + value, 0)
+              : ROLE_DEFS.length * p.initialInventory
+          ) +
           3 * p.shipmentDelay * p.baselineDemand +
           p.shipmentDelay * p.baselineDemand,
         completed: false
@@ -1215,7 +1159,6 @@
         teamName: config.teamName,
         players: config.players,
         communication: config.communication,
-        initialInventories: [...config.initialInventories],
         game: initialGame(config),
         pendingDecisions: [null, null, null, null],
         activeRoleIndex: 0,
@@ -1276,35 +1219,6 @@
       $(id).classList.remove("open");
     }
 
-    function safeInventory(value) {
-      const number = Number(value);
-      if (!Number.isFinite(number)) return 0;
-      return Math.max(0, Math.min(999, Math.round(number)));
-    }
-
-    function renderInventoryInputs(values = SCENARIO_INITIAL_INVENTORIES[els.scenarioInput.value]) {
-      const inventories = values.map(safeInventory);
-      els.inventoryGrid.innerHTML = ROLE_DEFS.map((role, index) => `
-        <div class="inventory-field">
-          <label for="initialInventory${index}">
-            <span class="role-dot" style="background:${role.colour}"></span>
-            ${role.name}
-          </label>
-          <input
-            class="input"
-            id="initialInventory${index}"
-            type="number"
-            inputmode="numeric"
-            min="0"
-            max="999"
-            step="1"
-            value="${inventories[index]}"
-            aria-label="${role.name} initial inventory"
-          />
-        </div>
-      `).join("");
-    }
-
     function renderPlayerInputs() {
       els.playersGrid.innerHTML = ROLE_DEFS.map((role, index) => `
         <div class="player-row">
@@ -1341,10 +1255,6 @@
         scenario: els.scenarioInput.value,
         totalWeeks: Number(els.weeksInput.value),
         communication: els.communicationInput.value,
-        initialInventories: ROLE_DEFS.map((role, i) => {
-          const input = $(`initialInventory${i}`);
-          return safeInventory(input.value);
-        }),
         players: ROLE_DEFS.map((role, i) => {
           const input = $(`playerName${i}`);
           return input.value.trim() || role.name;
@@ -1695,8 +1605,7 @@
         players: ["A","B","C","D"],
         scenario: "constant",
         totalWeeks: 24,
-        communication: "silent",
-        initialInventories: [12, 12, 12, 12]
+        communication: "silent"
       };
 
       let game = initialGame(config);
@@ -1705,17 +1614,6 @@
       check(
         "Equilibrium inventory remains 12 cases",
         game.roles.every(role => role.inventory === 12)
-      );
-
-      const customInitial = initialGame({
-        ...config,
-        scenario: "step",
-        initialInventories: [24, 20, 16, 8]
-      });
-
-      check(
-        "Custom initial inventories are applied",
-        customInitial.roles.every((role, index) => role.inventory === [24, 20, 16, 8][index])
       );
 
       check(
@@ -1832,9 +1730,6 @@
     }
 
     els.startBtn.addEventListener("click", startNewGame);
-    els.scenarioInput.addEventListener("change", () => {
-      renderInventoryInputs(SCENARIO_INITIAL_INVENTORIES[els.scenarioInput.value]);
-    });
     els.howBtn.addEventListener("click", () => openModal("howModal"));
     els.resumeBtn.addEventListener("click", resumeSession);
     els.readyBtn.addEventListener("click", renderPrivateRole);
@@ -1890,7 +1785,6 @@
       if (session && session.phase === "debrief") renderCharts();
     });
 
-    renderInventoryInputs();
     renderPlayerInputs();
     updateSavedGamePrompt();
   </script>
